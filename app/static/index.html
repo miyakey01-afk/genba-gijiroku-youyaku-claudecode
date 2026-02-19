@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>議事録作成アプリ</title>
+    <link rel="stylesheet" href="/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>議事録作成アプリ</h1>
+            <p class="subtitle">テキストまたは音声ファイル（MP3）から営業議事録を自動生成</p>
+        </header>
+
+        <main>
+            <!-- Input Form -->
+            <form id="form" class="form-section">
+                <div class="form-group">
+                    <label for="text_paste">テキスト入力（貼り付け）</label>
+                    <textarea id="text_paste" name="text_paste" rows="8"
+                        placeholder="商談メモや文字起こしテキストをここに貼り付けてください..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>ファイルアップロード</label>
+                    <div class="file-upload" id="dropZone">
+                        <input type="file" id="fileInput" name="files" multiple
+                            accept=".txt,.md,.mp3,.wav,.m4a,.flac">
+                        <div class="file-upload-label">
+                            <span class="file-icon">&#128196;</span>
+                            <p>ファイルをドラッグ＆ドロップ<br>またはクリックして選択</p>
+                            <p class="file-hint">対応形式: テキスト(.txt, .md) / 音声(.mp3, .wav, .m4a, .flac)</p>
+                        </div>
+                    </div>
+                    <div id="fileList" class="file-list"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="output_format">出力形式</label>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="output_format" value="text" checked>
+                            <span>テキスト形式（Markdown）</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="output_format" value="word">
+                            <span>WORD形式（.docx）</span>
+                        </label>
+                    </div>
+                </div>
+
+                <button type="submit" id="submitBtn" class="btn-primary">
+                    議事録を生成
+                </button>
+            </form>
+
+            <!-- Processing Status -->
+            <div id="processing" class="processing-section" hidden>
+                <div class="spinner"></div>
+                <p id="statusMessage">処理中...</p>
+            </div>
+
+            <!-- Result -->
+            <div id="resultSection" class="result-section" hidden>
+                <div class="result-header">
+                    <h2>生成結果</h2>
+                    <div class="result-actions">
+                        <button id="copyBtn" class="btn-secondary" title="コピー">コピー</button>
+                        <button id="downloadBtn" class="btn-secondary" hidden>DOCXダウンロード</button>
+                        <button id="newBtn" class="btn-secondary">新規作成</button>
+                    </div>
+                </div>
+                <div id="resultContent" class="result-content"></div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/app.js"></script>
+</body>
+</html>
