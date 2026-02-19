@@ -1,0 +1,439 @@
+app:
+  description: テキストファイルから議事録を作成します
+  icon: a2819445-ac0e-4330-98fc-e96e3b847573
+  icon_background: '#FFEAD5'
+  mode: workflow
+  name: 【1011】議事録作成エージェント（テキストのみ対応）
+  use_icon_as_answer_icon: false
+dependencies:
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: bowenliang123/md_exporter:3.4.0@a5ce3ac3114f3dd6ab4fe49f0bb931a31af49ff555e479ec45e8aaa5d44157ee
+    version: null
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/gemini:0.7.0@0d2058fc3e1a7aa93a3749d59d93bdfee25eeb873352ff943918ba6b5bc15ac9
+    version: null
+kind: app
+version: 0.5.0
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .JPG
+      - .JPEG
+      - .PNG
+      - .GIF
+      - .WEBP
+      - .SVG
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        attachment_image_file_size_limit: 2
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        file_upload_limit: 50
+        image_file_batch_limit: 10
+        image_file_size_limit: 10
+        single_chunk_attachment_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 3
+    opening_statement: ''
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInLoop: false
+        sourceType: llm
+        targetType: if-else
+      id: 17647543085510-source-17647548199590-target
+      source: '17647543085510'
+      sourceHandle: source
+      target: '17647548199590'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: if-else
+        targetType: end
+      id: 17647548199590-false-1764568349395-target
+      source: '17647548199590'
+      sourceHandle: 'false'
+      target: '1764568349395'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: if-else
+        targetType: tool
+      id: 17647548199590-true-17647548829210-target
+      source: '17647548199590'
+      sourceHandle: 'true'
+      target: '17647548829210'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: tool
+        targetType: end
+      id: 17647548829210-source-1764754940982-target
+      source: '17647548829210'
+      sourceHandle: source
+      target: '1764754940982'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: start
+        targetType: llm
+      id: 1764568235868-source-17647543085510-target
+      source: '1764568235868'
+      sourceHandle: source
+      target: '17647543085510'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        selected: false
+        title: ユーザー入力
+        type: start
+        variables:
+        - default: ''
+          hint: ''
+          label: テキストを以下の枠に張り付けてください
+          max_length: 100000
+          options: []
+          placeholder: ''
+          required: false
+          type: paragraph
+          variable: text_paste
+        - allowed_file_extensions: []
+          allowed_file_types:
+          - document
+          allowed_file_upload_methods:
+          - local_file
+          default: ''
+          hint: ''
+          label: テキストファイルがあれば張り付けてください
+          max_length: 3
+          options: []
+          placeholder: ''
+          required: false
+          type: file-list
+          variable: input_file
+        - default: テキスト形式
+          hint: ''
+          label: 出力形式
+          max_length: 48
+          options:
+          - テキスト形式
+          - WORD形式
+          placeholder: ''
+          required: true
+          type: select
+          variable: output_format
+      height: 161
+      id: '1764568235868'
+      position:
+        x: 76
+        y: 261
+      positionAbsolute:
+        x: 76
+        y: 261
+      selected: true
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        outputs:
+        - value_selector:
+          - '17647543085510'
+          - text
+          value_type: string
+          variable: text
+        selected: false
+        title: 出力
+        type: end
+      height: 88
+      id: '1764568349395'
+      position:
+        x: 1096.0000000000002
+        y: 395.4901436901551
+      positionAbsolute:
+        x: 1096.0000000000002
+        y: 395.4901436901551
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        model:
+          completion_params: {}
+          mode: chat
+          name: gemini-2.5-flash
+          provider: langgenius/gemini/google
+        prompt_template:
+        - id: 035530f1-ec2a-4f1c-b56a-e174c1206ce2
+          role: system
+          text: "あなたは当社（OA機器・ITインフラを扱うBtoB営業会社）の営業議事録を要約する社内アシスタントです。フィールド営業が商談で使用した録音データ（テキスト形式）を、社内の営業記録フォーマットに整形します。\n\
+            \n会話内容（文脈）から話者認識をして、議事録作成に活かしてください\n\n出力は必ずMarkdown形式で行い、営業責任者がそのまま社内共有に使えるレベルの実務的な文章にしてください。\n\
+            \n【出力形式】\n・Markdown形式で出力する  \n・冒頭に「## 概要」を設け、商談の背景・主旨・要点を簡潔に記載（3～5行程度）\
+            \  \n・続く項目は、商談内容に応じて機器・サービス・業務領域ごとの大項目（見出し、##）を自動で生成  \n・各大項目の下に、中項目（###）を設け、さらに必要に応じて小項目（番号付きまたは・付き）で詳細を記述\
+            \  \n・小項目（最下層）は具体的な内容・数字・課題・背景・対応方針などを**箇条書きで3〜5行程度**に分解し、資料1に近い粒度で記述する\
+            \  \n・「## アクション項目」は必ず設け、特に**営業担当者が次に取るべき具体的な行動**を中心に、\n  営業側・顧客側の対応事項を**箇条書きの文章形式（チェックリスト形式ではなく文体として）**で記載する。\
+            \  \n  各項目は、何を・誰が・どのように行うかが明確になるように記述し、必要に応じて期限や関係者を補足する  \n・「## AI提案」では、会議内で結論が出ていない・アクションが未確定の重要課題を整理して記載する\
+            \  \n\n【記載上の注意】\n・主語は「顧客」「当社」「営業担当」など明確にする  \n・冗長な表現は省くが、状況や背景は必要に応じて補足する\
+            \  \n・内容がない大項目は作らない（＝項目は動的）  \n・社内向けの営業記録として、そのまま使える実務的文体で記載する  \n・元のメモに重要な数値（台数、金額、導入予定時期、拠点数など）がある場合は、必ずどこかの項目に残す\
+            \  \n\n出力はMarkdownテキストのみとし、余計な説明文や前置きは一切書かない。\n"
+        - id: e1fb8fd8-ca5d-4cbe-a909-8883e553eed8
+          role: user
+          text: '以下は営業担当者が記録した商談メモです（テキストまたは音声の文字起こし）。
+
+            この内容を、システムメッセージの指示に従って要約してください。
+
+
+            ===== 商談メモここから =====
+
+            {{#1764568235868.input_file#}}
+
+            {{#1764568235868.text_paste#}}
+
+            ===== 商談メモここまで =====
+
+            '
+        selected: false
+        title: テキストから議事録作成LLM
+        type: llm
+        vision:
+          enabled: false
+      height: 88
+      id: '17647543085510'
+      position:
+        x: 408.0000000000002
+        y: 282
+      positionAbsolute:
+        x: 408.0000000000002
+        y: 282
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: is
+            id: 0adec950-7b4c-4030-a573-db7fb67ffc03
+            value: WORD形式
+            varType: string
+            variable_selector:
+            - '1764568235868'
+            - output_format
+          id: 'true'
+          logical_operator: and
+        selected: false
+        title: IF/ELSE 3（出力指定を分岐）
+        type: if-else
+      height: 124
+      id: '17647548199590'
+      position:
+        x: 752.0000000000003
+        y: 282
+      positionAbsolute:
+        x: 752.0000000000003
+        y: 282
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        is_team_authorization: true
+        paramSchemas:
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: Markdown text
+            ja_JP: Markdown text
+            pt_BR: Markdown text
+            zh_Hans: Markdown格式文本
+          label:
+            en_US: Markdown text
+            ja_JP: Markdown text
+            pt_BR: Markdown text
+            zh_Hans: Markdown格式文本
+          llm_description: ''
+          max: null
+          min: null
+          name: md_text
+          options: []
+          placeholder: null
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: Optional docx template file for styling。Use "Home"-"Styles Pane"
+              in Microsoft Word to edit styles of the docx file.
+            ja_JP: Optional docx template file for styling。Use "Home"-"Styles Pane"
+              in Microsoft Word to edit styles of the docx file.
+            pt_BR: Optional docx template file for styling。Use "Home"-"Styles Pane"
+              in Microsoft Word to edit styles of the docx file.
+            zh_Hans: 可选的docx模板文件，用于样式控制。使用Microsoft Word中“开始”-“样式窗格”对docx文件的样式进行编辑。
+          label:
+            en_US: DOCX Template File
+            ja_JP: DOCX Template File
+            pt_BR: DOCX Template File
+            zh_Hans: DOCX 模板文件
+          llm_description: An optional .pptx file that serves as a template for the
+            generated presentation
+          max: null
+          min: null
+          name: docx_template_file
+          options: []
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: file
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: Optional custom output file name, and the filename suffix is not
+              required.
+            ja_JP: Optional custom output file name, and the filename suffix is not
+              required.
+            pt_BR: Optional custom output file name, and the filename suffix is not
+              required.
+            zh_Hans: 可选的自定义输出文件名，后缀名无需指定
+          label:
+            en_US: Output Filename
+            ja_JP: Output Filename
+            pt_BR: Output Filename
+            zh_Hans: 输出文件名
+          llm_description: ''
+          max: null
+          min: null
+          name: output_filename
+          options: []
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: string
+        params:
+          docx_template_file: ''
+          md_text: ''
+          output_filename: ''
+        plugin_id: bowenliang123/md_exporter
+        plugin_unique_identifier: bowenliang123/md_exporter:2.0.0@13e1aca1995328e41c080ff9f7f6d898df60ff74a3f4d98d6de4b18ab5b92c2e
+        provider_icon: https://cloud.dify.ai/console/api/workspaces/current/plugin/icon?tenant_id=3a3a5d89-a565-4c44-b6e9-28ed16f6fd6d&filename=f0bad95cda1671b4e49f0e05df6122ef9ec5d554e138f128795d11d3806c00ef.svg
+        provider_id: bowenliang123/md_exporter/md_exporter
+        provider_name: bowenliang123/md_exporter/md_exporter
+        provider_type: builtin
+        selected: false
+        title: Markdown to DOCX file (1)
+        tool_configurations: {}
+        tool_description: Generate DOCX file from Markdown text
+        tool_label: Markdown to DOCX file
+        tool_name: md_to_docx
+        tool_node_version: '2'
+        tool_parameters:
+          docx_template_file:
+            type: constant
+            value: null
+          md_text:
+            type: mixed
+            value: '{{#17647543085510.text#}}'
+          output_filename:
+            type: mixed
+            value: null
+        type: tool
+      height: 52
+      id: '17647548829210'
+      position:
+        x: 1096.0000000000002
+        y: 282
+      positionAbsolute:
+        x: 1096.0000000000002
+        y: 282
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        outputs:
+        - value_selector:
+          - '17647548829210'
+          - files
+          value_type: array[file]
+          variable: text
+        selected: false
+        title: 出力 3
+        type: end
+      height: 88
+      id: '1764754940982'
+      position:
+        x: 1424.0000000000002
+        y: 282
+      positionAbsolute:
+        x: 1424.0000000000002
+        y: 282
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    viewport:
+      x: -471.9330945920867
+      y: 155.271565180145
+      zoom: 1.0000000000000007
+  rag_pipeline_variables: []
