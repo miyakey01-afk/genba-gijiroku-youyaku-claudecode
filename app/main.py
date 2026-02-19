@@ -34,6 +34,18 @@ async def generate(
     output_format: str = Form(default="text"),
     files: list[UploadFile] = File(default=[]),
 ):
+    # Read all uploaded files BEFORE entering the SSE generator.
+    # FastAPI closes the request body (and UploadFile handles) once
+    # StreamingResponse is returned, so reading inside the generator
+    # causes "read of closed file" errors.
+    file_data: list[tuple[str, bytes]] = []
+    has_files = bool(files and any(f.filename for f in files))
+    if has_files:
+        for f in files:
+            if not f.filename:
+                continue
+            file_data.append((f.filename, await f.read()))
+
     async def event_stream():
         temp_files: list[tuple[str, str]] = []
         temp_dir = None
@@ -43,40 +55,25 @@ async def generate(
 
             # Validate input
             has_text = bool(text_paste.strip())
-            has_files = bool(files and any(f.filename for f in files))
 
-            if not has_text and not has_files:
+            if not has_text and not file_data:
                 yield _sse_event("error", {"message": "テキストまたはファイルを入力してください。"})
                 return
 
-            # Save uploaded files to temp directory
-            if has_files:
+            # Save pre-read file data to temp directory
+            if file_data:
                 temp_dir = tempfile.mkdtemp(dir=settings.temp_dir)
-                for f in files:
-                    if not f.filename:
-                        continue
-                    yield _sse_event("status", {"message": f"ファイルを保存中: {f.filename}"})
-                    temp_path = os.path.join(temp_dir, f.filename)
-                    content = await f.read()
+                for filename, content in file_data:
+                    yield _sse_event("status", {"message": f"ファイルを保存中: {filename}"})
+                    temp_path = os.path.join(temp_dir, filename)
                     with open(temp_path, "wb") as out:
                         out.write(content)
-                    temp_files.append((f.filename, temp_path))
-
-            # Status callback for Gemini client
-            async def on_status(msg: str):
-                pass  # SSE events are yielded from this generator only
+                    temp_files.append((filename, temp_path))
 
             # Generate minutes
             yield _sse_event("status", {"message": "Gemini APIで議事録を生成中..."})
 
-            # Use a simple approach: run synchronously since Gemini SDK is sync
             import asyncio
-
-            loop = asyncio.get_event_loop()
-
-            async def status_collector(msg: str):
-                nonlocal status_messages
-                status_messages.append(msg)
 
             status_messages: list[str] = []
             markdown_result = await asyncio.to_thread(
