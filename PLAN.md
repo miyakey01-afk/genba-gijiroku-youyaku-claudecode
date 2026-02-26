@@ -52,15 +52,18 @@
 6. 一時ファイルを削除
 
 **大容量MP3のアップロード対策**:
-- Cloud Runのデフォルトリクエストサイズ上限は32MB → 2時間MP3（100-300MB）は超過する
-- 対策: Cloud Runの `--max-request-body-size` を **500MB** に設定
+- Cloud RunのHTTP/1.1ではリクエストサイズ上限が32MB → 2時間MP3（100-300MB）は超過する
+- 対策: **HTTP/2を使用**してCloud Runの32MB制限を回避（HTTP/2にはサイズ制限なし）
+  - Uvicorn側: `--http h2` オプションで h2c (HTTP/2 cleartext) を有効化
+  - Cloud Run側: `gcloud run deploy --use-http2` でHTTP/2を有効化
+  - 依存: `h2` パッケージをrequirements.txtに追加
 - GCS署名付きURLは不要（アーキテクチャをシンプルに保つ）
 
 ### Cloud Run構成
 - **タイムアウト**: 最大60分（2時間音声の処理に対応）
 - **メモリ**: 2GB（大きなMP3ファイルのメモリ内処理用）
 - **CPU**: 2 vCPU
-- **最大リクエストサイズ**: 500MB（`--max-request-body-size`で設定）
+- **HTTP/2**: 有効（`--use-http2`）— 32MBリクエストサイズ制限を回避
 - **同時実行数**: 1（LLM処理は重いため）
 
 ---
