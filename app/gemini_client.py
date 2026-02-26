@@ -25,7 +25,10 @@ AUDIO_MIME_TYPES = {
 
 
 def _get_client() -> genai.Client:
-    return genai.Client(api_key=settings.gemini_api_key)
+    return genai.Client(
+        api_key=settings.gemini_api_key,
+        http_options=types.HttpOptions(timeout=600_000),  # 10 minutes
+    )
 
 
 def _classify_file(filename: str) -> str:
@@ -113,18 +116,30 @@ async def generate_minutes(
         user_prompt = USER_PROMPT_TEMPLATE.format(content=all_text if all_text else "（音声ファイルを参照してください）")
         contents.append(types.Part.from_text(text=user_prompt))
 
-        # Call Gemini
-        await send_status("議事録を生成中...")
-        response = client.models.generate_content(
-            model=settings.gemini_model,
-            contents=contents,
-            config=types.GenerateContentConfig(
-                system_instruction=SYSTEM_PROMPT,
-                temperature=0.7,
-            ),
-        )
+        # Call Gemini with retry (large audio files can cause transient failures)
+        max_retries = 3
+        for attempt in range(1, max_retries + 1):
+            try:
+                if attempt == 1:
+                    await send_status("議事録を生成中...")
+                else:
+                    await send_status(f"議事録を生成中...（リトライ {attempt}/{max_retries}）")
 
-        return response.text
+                response = client.models.generate_content(
+                    model=settings.gemini_model,
+                    contents=contents,
+                    config=types.GenerateContentConfig(
+                        system_instruction=SYSTEM_PROMPT,
+                        temperature=0.7,
+                    ),
+                )
+                return response.text
+
+            except Exception as e:
+                if attempt == max_retries:
+                    raise
+                await send_status(f"一時的なエラーが発生、{attempt * 5}秒後にリトライします...")
+                time.sleep(attempt * 5)
 
     finally:
         # Clean up uploaded files from Gemini
