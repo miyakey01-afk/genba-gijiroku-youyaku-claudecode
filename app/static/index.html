@@ -59,6 +59,10 @@
             <!-- Processing Status -->
             <div id="processing" class="processing-section" hidden>
                 <div class="spinner"></div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="progressBar"></div>
+                </div>
+                <p id="progressPercent">0%</p>
                 <p id="statusMessage">処理中...</p>
             </div>
 
@@ -68,8 +72,8 @@
                     <h2>生成結果</h2>
                     <div class="result-actions">
                         <button id="copyBtn" class="btn-secondary" title="コピー">コピー</button>
-                        <button id="downloadBtn" class="btn-secondary" hidden>DOCXダウンロード</button>
-                        <button id="newBtn" class="btn-secondary">新規作成</button>
+                        <button id="downloadBtn" class="btn-secondary" hidden>ダウンロード</button>
+                        <button id="newBtn" class="btn-new-summary">新しい要約をする</button>
                     </div>
                 </div>
                 <div id="resultContent" class="result-content"></div>

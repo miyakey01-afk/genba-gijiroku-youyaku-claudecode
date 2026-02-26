@@ -199,6 +199,22 @@ textarea:focus {
     background: #f3f4f6;
 }
 
+.btn-new-summary {
+    padding: 8px 20px;
+    background: #1a56db;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-new-summary:hover {
+    background: #1e40af;
+}
+
 /* Processing */
 .processing-section {
     text-align: center;
@@ -223,6 +239,31 @@ textarea:focus {
     to {
         transform: rotate(360deg);
     }
+}
+
+.progress-bar-container {
+    width: 80%;
+    max-width: 400px;
+    height: 12px;
+    background: #e5e7eb;
+    border-radius: 6px;
+    margin: 16px auto 8px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #1a56db, #3b82f6);
+    border-radius: 6px;
+    transition: width 0.5s ease;
+}
+
+#progressPercent {
+    color: #1a56db;
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 8px;
 }
 
 #statusMessage {

@@ -51,7 +51,7 @@ async def generate(
         temp_dir = None
 
         try:
-            yield _sse_event("status", {"message": "入力を処理中..."})
+            yield _sse_event("status", {"message": "入力を処理中...", "progress": 5})
 
             # Validate input
             has_text = bool(text_paste.strip())
@@ -63,15 +63,17 @@ async def generate(
             # Save pre-read file data to temp directory
             if file_data:
                 temp_dir = tempfile.mkdtemp(dir=settings.temp_dir)
-                for filename, content in file_data:
-                    yield _sse_event("status", {"message": f"ファイルを保存中: {filename}"})
+                total_files = len(file_data)
+                for idx, (filename, content) in enumerate(file_data):
+                    file_progress = 10 + int(20 * idx / max(total_files, 1))
+                    yield _sse_event("status", {"message": f"ファイルを保存中: {filename}", "progress": file_progress})
                     temp_path = os.path.join(temp_dir, filename)
                     with open(temp_path, "wb") as out:
                         out.write(content)
                     temp_files.append((filename, temp_path))
 
             # Generate minutes
-            yield _sse_event("status", {"message": "Gemini APIで議事録を生成中..."})
+            yield _sse_event("status", {"message": "Gemini APIで議事録を生成中...", "progress": 30})
 
             import asyncio
 
@@ -80,24 +82,35 @@ async def generate(
                 _generate_sync, text_paste, temp_files, status_messages
             )
 
-            # Send any collected status messages
-            for msg in status_messages:
-                yield _sse_event("status", {"message": msg})
+            # Send any collected status messages with progress
+            for i, msg in enumerate(status_messages):
+                msg_progress = 35 + int(40 * (i + 1) / max(len(status_messages), 1))
+                yield _sse_event("status", {"message": msg, "progress": msg_progress})
+
+            yield _sse_event("status", {"message": "出力を準備中...", "progress": 85})
 
             # Handle output format
             download_url = None
             if output_format == "word":
-                yield _sse_event("status", {"message": "DOCXファイルを生成中..."})
+                yield _sse_event("status", {"message": "DOCXファイルを生成中...", "progress": 90})
                 docx_buffer = markdown_to_docx(markdown_result)
                 filename = f"議事録_{uuid.uuid4().hex[:8]}.docx"
                 docx_path = DOWNLOAD_DIR / filename
                 with open(docx_path, "wb") as out:
                     out.write(docx_buffer.read())
                 download_url = f"/api/download/{filename}"
+            else:
+                # Save as .txt for text format download
+                filename = f"議事録_{uuid.uuid4().hex[:8]}.txt"
+                txt_path = DOWNLOAD_DIR / filename
+                with open(txt_path, "w", encoding="utf-8") as out:
+                    out.write(markdown_result)
+                download_url = f"/api/download/{filename}"
 
             yield _sse_event("result", {
                 "markdown": markdown_result,
                 "download_url": download_url,
+                "output_format": output_format,
             })
 
         except Exception as e:
@@ -137,10 +150,14 @@ async def download(filename: str):
     file_path = DOWNLOAD_DIR / filename
     if not file_path.exists():
         return {"error": "ファイルが見つかりません"}
+    if filename.endswith(".txt"):
+        media_type = "text/plain; charset=utf-8"
+    else:
+        media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     return FileResponse(
         path=file_path,
         filename=filename,
-        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        media_type=media_type,
     )
 
 

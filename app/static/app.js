@@ -12,6 +12,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const downloadBtn = document.getElementById("downloadBtn");
   const newBtn = document.getElementById("newBtn");
 
+  const progressBar = document.getElementById("progressBar");
+  const progressPercent = document.getElementById("progressPercent");
+
   let selectedFiles = [];
   let rawMarkdown = "";
 
@@ -91,6 +94,8 @@ document.addEventListener("DOMContentLoaded", () => {
     processing.hidden = false;
     resultSection.hidden = true;
     statusMessage.textContent = "処理を開始中...";
+    progressBar.style.width = "0%";
+    progressPercent.textContent = "0%";
 
     try {
       const response = await fetch("/api/generate", {
@@ -142,6 +147,10 @@ document.addEventListener("DOMContentLoaded", () => {
     switch (type) {
       case "status":
         statusMessage.textContent = data.message;
+        if (data.progress !== undefined) {
+          progressBar.style.width = data.progress + "%";
+          progressPercent.textContent = data.progress + "%";
+        }
         break;
 
       case "result":
@@ -152,6 +161,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (data.download_url) {
           downloadBtn.hidden = false;
+          if (data.output_format === "word") {
+            downloadBtn.textContent = "DOCXダウンロード";
+          } else {
+            downloadBtn.textContent = "TXTダウンロード";
+          }
           downloadBtn.onclick = () => {
             window.location.href = data.download_url;
           };
