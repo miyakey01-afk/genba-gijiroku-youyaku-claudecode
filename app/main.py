@@ -1,8 +1,10 @@
 import json
 import os
+import re
 import tempfile
-import uuid
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
+from urllib.parse import quote, unquote
 
 from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.responses import FileResponse, StreamingResponse
@@ -11,6 +13,37 @@ from fastapi.staticfiles import StaticFiles
 from app.config import settings
 from app.docx_generator import markdown_to_docx
 from app.gemini_client import generate_minutes
+
+JST = timezone(timedelta(hours=9))
+
+
+def _extract_title(markdown: str) -> str:
+    """Extract title from the first '# ...' line of markdown."""
+    for line in markdown.splitlines():
+        line = line.strip()
+        if line.startswith("# "):
+            return line[2:].strip()
+    return "商談議事録"
+
+
+def _sanitize_filename(name: str) -> str:
+    """Remove characters not safe for filenames."""
+    return re.sub(r'[\\/:*?"<>|\s　]+', "_", name).strip("_")
+
+
+def _add_created_at(markdown: str, now: datetime) -> str:
+    """Insert '作成日時' line right after the title '# ...' line."""
+    date_str = now.strftime("%Y年%m月%d日 %H:%M")
+    lines = markdown.splitlines(keepends=True)
+    for i, line in enumerate(lines):
+        if line.strip().startswith("# "):
+            insert_line = f"\n**作成日時:** {date_str}\n"
+            lines.insert(i + 1, insert_line)
+            break
+    else:
+        # No title found — prepend date at the top
+        lines.insert(0, f"**作成日時:** {date_str}\n\n")
+    return "".join(lines)
 
 app = FastAPI(title="議事録作成アプリ")
 
@@ -89,23 +122,33 @@ async def generate(
 
             yield _sse_event("status", {"message": "出力を準備中...", "progress": 85})
 
+            # Add title and creation datetime
+            now = datetime.now(JST)
+            title = _extract_title(markdown_result)
+            markdown_result = _add_created_at(markdown_result, now)
+
+            # Build filename: タイトル_作成日時
+            date_stamp = now.strftime("%Y%m%d_%H%M")
+            safe_title = _sanitize_filename(title)
+            file_base = f"{safe_title}_{date_stamp}"
+
             # Handle output format
             download_url = None
             if output_format == "word":
                 yield _sse_event("status", {"message": "DOCXファイルを生成中...", "progress": 90})
                 docx_buffer = markdown_to_docx(markdown_result)
-                filename = f"議事録_{uuid.uuid4().hex[:8]}.docx"
+                filename = f"{file_base}.docx"
                 docx_path = DOWNLOAD_DIR / filename
                 with open(docx_path, "wb") as out:
                     out.write(docx_buffer.read())
-                download_url = f"/api/download/{filename}"
+                download_url = f"/api/download/{quote(filename)}"
             else:
                 # Save as .txt for text format download
-                filename = f"議事録_{uuid.uuid4().hex[:8]}.txt"
+                filename = f"{file_base}.txt"
                 txt_path = DOWNLOAD_DIR / filename
                 with open(txt_path, "w", encoding="utf-8") as out:
                     out.write(markdown_result)
-                download_url = f"/api/download/{filename}"
+                download_url = f"/api/download/{quote(filename)}"
 
             yield _sse_event("result", {
                 "markdown": markdown_result,
@@ -145,8 +188,9 @@ def _generate_sync(
     )
 
 
-@app.get("/api/download/{filename}")
+@app.get("/api/download/{filename:path}")
 async def download(filename: str):
+    filename = unquote(filename)
     file_path = DOWNLOAD_DIR / filename
     if not file_path.exists():
         return {"error": "ファイルが見つかりません"}
