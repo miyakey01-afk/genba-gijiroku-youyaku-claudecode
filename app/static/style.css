@@ -71,6 +71,74 @@ textarea:focus {
     box-shadow: 0 0 0 3px rgba(26, 86, 219, 0.1);
 }
 
+/* Recording */
+.recording-controls {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.btn-record {
+    padding: 12px 28px;
+    background: #1a56db;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-record:hover {
+    background: #1e40af;
+}
+
+.btn-record.recording {
+    background: #dc2626;
+    animation: pulse-btn 1.5s ease-in-out infinite;
+}
+
+.btn-record.recording:hover {
+    background: #b91c1c;
+}
+
+.recording-time {
+    font-size: 1.4rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: #dc2626;
+}
+
+.recording-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    color: #dc2626;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.recording-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    background: #dc2626;
+    border-radius: 50%;
+    animation: blink-dot 1s ease-in-out infinite;
+}
+
+@keyframes blink-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.2; }
+}
+
+@keyframes pulse-btn {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4); }
+    50% { box-shadow: 0 0 0 8px rgba(220, 38, 38, 0); }
+}
+
 /* File Upload */
 .file-upload {
     position: relative;

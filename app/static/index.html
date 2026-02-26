@@ -11,17 +11,28 @@
     <div class="container">
         <header>
             <h1>RAMMY 議事録作成アプリ</h1>
-            <p class="subtitle">テキストまたは音声ファイル（MP3）から営業議事録を自動生成</p>
+            <p class="subtitle">音声録音・音声ファイル・テキストから営業議事録を自動生成</p>
         </header>
 
         <main>
             <!-- Input Form -->
             <form id="form" class="form-section">
                 <div class="form-group">
+                    <label>音声録音</label>
+                    <div class="recording-controls">
+                        <button type="button" id="recordBtn" class="btn-record">録音開始</button>
+                        <span id="recordingTime" class="recording-time" hidden>00:00</span>
+                    </div>
+                    <div id="recordingIndicator" class="recording-indicator" hidden>
+                        <span class="recording-dot"></span> 録音中...
+                    </div>
+                </div>
+
+                <div class="form-group">
                     <label>ファイルアップロード</label>
                     <div class="file-upload" id="dropZone">
                         <input type="file" id="fileInput" name="files" multiple
-                            accept=".txt,.md,.mp3,.wav,.m4a,.flac">
+                            accept=".txt,.md,.mp3,.wav,.m4a,.flac,.webm">
                         <div class="file-upload-label">
                             <span class="file-icon">&#128196;</span>
                             <p>ファイルをドラッグ＆ドロップ<br>またはクリックして選択</p>

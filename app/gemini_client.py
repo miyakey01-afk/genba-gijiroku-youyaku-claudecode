@@ -10,7 +10,7 @@ from google.genai import types
 from app.config import settings
 from app.prompts import SYSTEM_PROMPT, USER_PROMPT_TEMPLATE
 
-AUDIO_EXTENSIONS = {".mp3", ".wav", ".m4a", ".flac", ".ogg", ".aac", ".wma"}
+AUDIO_EXTENSIONS = {".mp3", ".wav", ".m4a", ".flac", ".ogg", ".aac", ".wma", ".webm"}
 TEXT_EXTENSIONS = {".txt", ".md", ".text", ".csv"}
 
 AUDIO_MIME_TYPES = {
@@ -21,6 +21,7 @@ AUDIO_MIME_TYPES = {
     ".ogg": "audio/ogg",
     ".aac": "audio/aac",
     ".wma": "audio/x-ms-wma",
+    ".webm": "audio/webm",
 }
 
 
