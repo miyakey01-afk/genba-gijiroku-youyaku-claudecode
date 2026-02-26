@@ -56,7 +56,7 @@ document.addEventListener("DOMContentLoaded", () => {
         recordingTimer = null;
 
         // Update UI
-        recordBtn.textContent = "録音開始";
+        recordBtn.title = "録音開始";
         recordBtn.classList.remove("recording");
         recordingTime.hidden = true;
         recordingIndicator.hidden = true;
@@ -78,7 +78,7 @@ document.addEventListener("DOMContentLoaded", () => {
       mediaRecorder.start();
 
       // Update UI
-      recordBtn.textContent = "録音停止";
+      recordBtn.title = "録音停止";
       recordBtn.classList.add("recording");
       recordingTime.hidden = false;
       recordingIndicator.hidden = false;
