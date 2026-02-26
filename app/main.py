@@ -1,3 +1,5 @@
+import asyncio
+import concurrent.futures
 import json
 import os
 import re
@@ -45,7 +47,7 @@ def _add_created_at(markdown: str, now: datetime) -> str:
         lines.insert(0, f"**作成日時:** {date_str}\n\n")
     return "".join(lines)
 
-app = FastAPI(title="議事録作成アプリ")
+app = FastAPI(title="RAMMY 議事録作成アプリ")
 
 # Temp directory for DOCX downloads
 DOWNLOAD_DIR = Path(settings.temp_dir) / "downloads"
@@ -108,12 +110,22 @@ async def generate(
             # Generate minutes
             yield _sse_event("status", {"message": "Gemini APIで議事録を生成中...", "progress": 30})
 
-            import asyncio
-
             status_messages: list[str] = []
-            markdown_result = await asyncio.to_thread(
-                _generate_sync, text_paste, temp_files, status_messages
-            )
+
+            # Run generation in a thread, sending SSE keepalive every 10s
+            # to prevent Cloud Run / browser from closing the idle connection
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(
+                    _generate_sync, text_paste, temp_files, status_messages
+                )
+                while not future.done():
+                    await asyncio.sleep(10)
+                    if not future.done():
+                        # SSE comment — keeps HTTP connection alive,
+                        # ignored by frontend event parser
+                        yield ": keepalive\n\n"
+
+                markdown_result = future.result()
 
             # Send any collected status messages with progress
             for i, msg in enumerate(status_messages):

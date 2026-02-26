@@ -17,6 +17,38 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let selectedFiles = [];
   let rawMarkdown = "";
+  let simulatedTimer = null;
+
+  // --- Simulated progress ---
+  // Gradually advances the progress bar while waiting for server events
+  // (e.g. during long Gemini API calls that can take 1-4+ minutes)
+
+  function startSimulatedProgress(fromPercent, toPercent, durationMs) {
+    stopSimulatedProgress();
+    const startTime = Date.now();
+    const range = toPercent - fromPercent;
+
+    simulatedTimer = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const ratio = Math.min(elapsed / durationMs, 1);
+      // Ease-out curve: fast at start, slows down toward the end
+      const eased = 1 - Math.pow(1 - ratio, 2);
+      const current = Math.round(fromPercent + range * eased);
+      progressBar.style.width = current + "%";
+      progressPercent.textContent = current + "%";
+      if (ratio >= 1) {
+        clearInterval(simulatedTimer);
+        simulatedTimer = null;
+      }
+    }, 500);
+  }
+
+  function stopSimulatedProgress() {
+    if (simulatedTimer) {
+      clearInterval(simulatedTimer);
+      simulatedTimer = null;
+    }
+  }
 
   // --- File handling ---
 
@@ -137,6 +169,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
     } catch (err) {
+      stopSimulatedProgress();
       processing.hidden = true;
       form.hidden = false;
       alert("エラーが発生しました: " + err.message);
@@ -146,14 +179,22 @@ document.addEventListener("DOMContentLoaded", () => {
   function handleEvent(type, data) {
     switch (type) {
       case "status":
+        stopSimulatedProgress();
         statusMessage.textContent = data.message;
         if (data.progress !== undefined) {
           progressBar.style.width = data.progress + "%";
           progressPercent.textContent = data.progress + "%";
+
+          // When Gemini API processing starts (30%), simulate progress
+          // up to 80% over 4 minutes so the user sees movement
+          if (data.progress === 30) {
+            startSimulatedProgress(30, 80, 240000);
+          }
         }
         break;
 
       case "result":
+        stopSimulatedProgress();
         processing.hidden = true;
         resultSection.hidden = false;
         rawMarkdown = data.markdown;
@@ -175,6 +216,7 @@ document.addEventListener("DOMContentLoaded", () => {
         break;
 
       case "error":
+        stopSimulatedProgress();
         processing.hidden = true;
         form.hidden = false;
         alert("エラー: " + data.message);
