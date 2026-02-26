@@ -45,7 +45,7 @@ def _add_created_at(markdown: str, now: datetime) -> str:
         lines.insert(0, f"**作成日時:** {date_str}\n\n")
     return "".join(lines)
 
-app = FastAPI(title="議事録作成アプリ")
+app = FastAPI(title="RAMMY 議事録作成アプリ")
 
 # Temp directory for DOCX downloads
 DOWNLOAD_DIR = Path(settings.temp_dir) / "downloads"
