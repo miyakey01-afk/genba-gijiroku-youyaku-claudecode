@@ -15,9 +15,94 @@ document.addEventListener("DOMContentLoaded", () => {
   const progressBar = document.getElementById("progressBar");
   const progressPercent = document.getElementById("progressPercent");
 
+  const recordBtn = document.getElementById("recordBtn");
+  const recordingTime = document.getElementById("recordingTime");
+  const recordingIndicator = document.getElementById("recordingIndicator");
+
   let selectedFiles = [];
   let rawMarkdown = "";
   let simulatedTimer = null;
+
+  // --- Audio recording ---
+  let mediaRecorder = null;
+  let recordedChunks = [];
+  let recordingTimer = null;
+  let recordingStartTime = null;
+
+  recordBtn.addEventListener("click", async () => {
+    if (mediaRecorder && mediaRecorder.state === "recording") {
+      // Stop recording
+      mediaRecorder.stop();
+      return;
+    }
+
+    // Start recording
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      recordedChunks = [];
+
+      mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) recordedChunks.push(e.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        // Stop all tracks to release the microphone
+        stream.getTracks().forEach((t) => t.stop());
+
+        // Stop timer
+        clearInterval(recordingTimer);
+        recordingTimer = null;
+
+        // Update UI
+        recordBtn.textContent = "録音開始";
+        recordBtn.classList.remove("recording");
+        recordingTime.hidden = true;
+        recordingIndicator.hidden = true;
+
+        // Create file from recorded data
+        const blob = new Blob(recordedChunks, { type: "audio/webm" });
+        const now = new Date();
+        const ts = now.getFullYear()
+          + String(now.getMonth() + 1).padStart(2, "0")
+          + String(now.getDate()).padStart(2, "0")
+          + "_"
+          + String(now.getHours()).padStart(2, "0")
+          + String(now.getMinutes()).padStart(2, "0");
+        const file = new File([blob], `録音_${ts}.webm`, { type: "audio/webm" });
+        selectedFiles.push(file);
+        renderFileList();
+      };
+
+      mediaRecorder.start();
+
+      // Update UI
+      recordBtn.textContent = "録音停止";
+      recordBtn.classList.add("recording");
+      recordingTime.hidden = false;
+      recordingIndicator.hidden = false;
+      recordingStartTime = Date.now();
+
+      // Start elapsed time display
+      updateRecordingTime();
+      recordingTimer = setInterval(updateRecordingTime, 1000);
+
+    } catch (err) {
+      if (err.name === "NotAllowedError") {
+        alert("マイクへのアクセスが許可されていません。ブラウザの設定を確認してください。");
+      } else {
+        alert("録音を開始できませんでした: " + err.message);
+      }
+    }
+  });
+
+  function updateRecordingTime() {
+    const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+    const min = String(Math.floor(elapsed / 60)).padStart(2, "0");
+    const sec = String(elapsed % 60).padStart(2, "0");
+    recordingTime.textContent = `${min}:${sec}`;
+  }
 
   // --- Simulated progress ---
   // Gradually advances the progress bar while waiting for server events
@@ -236,6 +321,10 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   newBtn.addEventListener("click", () => {
+    // Stop recording if active
+    if (mediaRecorder && mediaRecorder.state === "recording") {
+      mediaRecorder.stop();
+    }
     resultSection.hidden = true;
     form.hidden = false;
     document.getElementById("text_paste").value = "";

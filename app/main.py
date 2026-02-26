@@ -112,15 +112,17 @@ async def generate(
 
             status_messages: list[str] = []
 
-            # Run generation in a thread, sending SSE keepalive every 10s
+            # Run generation in a thread, sending SSE keepalive every 15s
             # to prevent Cloud Run / browser from closing the idle connection
             with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
                 future = executor.submit(
                     _generate_sync, text_paste, temp_files, status_messages
                 )
+                elapsed = 0
                 while not future.done():
-                    await asyncio.sleep(10)
-                    if not future.done():
+                    await asyncio.sleep(3)
+                    elapsed += 3
+                    if not future.done() and elapsed % 15 == 0:
                         # SSE comment — keeps HTTP connection alive,
                         # ignored by frontend event parser
                         yield ": keepalive\n\n"
