@@ -116,8 +116,8 @@ async def generate_minutes(
         user_prompt = USER_PROMPT_TEMPLATE.format(content=all_text if all_text else "（音声ファイルを参照してください）")
         contents.append(types.Part.from_text(text=user_prompt))
 
-        # Call Gemini with retry (large audio files can cause transient failures)
-        max_retries = 3
+        # Call Gemini with retry on transient network errors only
+        max_retries = 2
         for attempt in range(1, max_retries + 1):
             try:
                 if attempt == 1:
@@ -135,10 +135,10 @@ async def generate_minutes(
                 )
                 return response.text
 
-            except Exception as e:
+            except (ConnectionError, TimeoutError, OSError) as e:
                 if attempt == max_retries:
                     raise
-                await send_status(f"一時的なエラーが発生、{attempt * 5}秒後にリトライします...")
+                await send_status(f"接続エラーが発生、{attempt * 5}秒後にリトライします...")
                 time.sleep(attempt * 5)
 
     finally:
