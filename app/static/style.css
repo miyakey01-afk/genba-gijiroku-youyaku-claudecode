@@ -288,6 +288,30 @@ textarea:focus {
     cursor: not-allowed;
 }
 
+.btn-rucas {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    margin-top: 10px;
+    background: #059669;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.05rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-rucas:hover {
+    background: #047857;
+}
+
+.btn-rucas:disabled {
+    background: #6ee7b7;
+    cursor: not-allowed;
+}
+
 .btn-secondary {
     padding: 8px 16px;
     background: #fff;

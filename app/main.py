@@ -67,6 +67,7 @@ async def health():
 async def generate(
     text_paste: str = Form(default=""),
     output_format: str = Form(default="text"),
+    mode: str = Form(default="minutes"),
     files: list[UploadFile] = File(default=[]),
 ):
     # Read all uploaded files BEFORE entering the SSE generator.
@@ -107,8 +108,11 @@ async def generate(
                         out.write(content)
                     temp_files.append((filename, temp_path))
 
-            # Generate minutes
-            yield _sse_event("status", {"message": "Gemini APIで議事録を生成中...", "progress": 30})
+            # Generate minutes / RUCAS summary
+            if mode == "rucas":
+                yield _sse_event("status", {"message": "Gemini APIでRUCAS営業情報を生成中...", "progress": 30})
+            else:
+                yield _sse_event("status", {"message": "Gemini APIで議事録を生成中...", "progress": 30})
 
             status_messages: list[str] = []
 
@@ -116,7 +120,7 @@ async def generate(
             # to prevent Cloud Run / browser from closing the idle connection
             with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
                 future = executor.submit(
-                    _generate_sync, text_paste, temp_files, status_messages
+                    _generate_sync, text_paste, temp_files, status_messages, mode
                 )
                 elapsed = 0
                 while not future.done():
@@ -136,39 +140,53 @@ async def generate(
 
             yield _sse_event("status", {"message": "出力を準備中...", "progress": 85})
 
-            # Add title and creation datetime
             now = datetime.now(JST)
-            title = _extract_title(markdown_result)
-            markdown_result = _add_created_at(markdown_result, now)
-
-            # Build filename: タイトル_作成日時
             date_stamp = now.strftime("%Y%m%d_%H%M")
-            safe_title = _sanitize_filename(title)
-            file_base = f"{safe_title}_{date_stamp}"
 
-            # Handle output format
-            download_url = None
-            if output_format == "word":
-                yield _sse_event("status", {"message": "DOCXファイルを生成中...", "progress": 90})
-                docx_buffer = markdown_to_docx(markdown_result)
-                filename = f"{file_base}.docx"
-                docx_path = DOWNLOAD_DIR / filename
-                with open(docx_path, "wb") as out:
-                    out.write(docx_buffer.read())
-                download_url = f"/api/download/{quote(filename)}"
-            else:
-                # Save as .txt for text format download
+            if mode == "rucas":
+                # RUCAS mode: plain text, no title extraction or timestamp
+                file_base = f"RUCAS営業情報_{date_stamp}"
                 filename = f"{file_base}.txt"
                 txt_path = DOWNLOAD_DIR / filename
                 with open(txt_path, "w", encoding="utf-8") as out:
                     out.write(markdown_result)
                 download_url = f"/api/download/{quote(filename)}"
 
-            yield _sse_event("result", {
-                "markdown": markdown_result,
-                "download_url": download_url,
-                "output_format": output_format,
-            })
+                yield _sse_event("result", {
+                    "markdown": markdown_result,
+                    "download_url": download_url,
+                    "output_format": "text",
+                })
+            else:
+                # Minutes mode: add title and creation datetime
+                title = _extract_title(markdown_result)
+                markdown_result = _add_created_at(markdown_result, now)
+
+                safe_title = _sanitize_filename(title)
+                file_base = f"{safe_title}_{date_stamp}"
+
+                # Handle output format
+                download_url = None
+                if output_format == "word":
+                    yield _sse_event("status", {"message": "DOCXファイルを生成中...", "progress": 90})
+                    docx_buffer = markdown_to_docx(markdown_result)
+                    filename = f"{file_base}.docx"
+                    docx_path = DOWNLOAD_DIR / filename
+                    with open(docx_path, "wb") as out:
+                        out.write(docx_buffer.read())
+                    download_url = f"/api/download/{quote(filename)}"
+                else:
+                    filename = f"{file_base}.txt"
+                    txt_path = DOWNLOAD_DIR / filename
+                    with open(txt_path, "w", encoding="utf-8") as out:
+                        out.write(markdown_result)
+                    download_url = f"/api/download/{quote(filename)}"
+
+                yield _sse_event("result", {
+                    "markdown": markdown_result,
+                    "download_url": download_url,
+                    "output_format": output_format,
+                })
 
         except Exception as e:
             yield _sse_event("error", {"message": f"エラーが発生しました: {str(e)}"})
@@ -190,6 +208,7 @@ def _generate_sync(
     text_paste: str,
     file_paths: list[tuple[str, str]],
     status_messages: list[str],
+    mode: str = "minutes",
 ) -> str:
     """Synchronous wrapper for generate_minutes (runs in thread)."""
     import asyncio
@@ -198,7 +217,7 @@ def _generate_sync(
         status_messages.append(msg)
 
     return asyncio.run(
-        generate_minutes(text_paste, file_paths, status_callback=status_cb)
+        generate_minutes(text_paste, file_paths, status_callback=status_cb, mode=mode)
     )
 
 
