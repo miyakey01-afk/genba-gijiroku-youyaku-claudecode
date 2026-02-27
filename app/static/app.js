@@ -200,6 +200,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // --- Form submission ---
 
+  const cancelBtn = document.getElementById("cancelBtn");
+  let abortController = null;
+
+  cancelBtn.addEventListener("click", () => {
+    if (abortController) {
+      abortController.abort();
+      abortController = null;
+    }
+    stopSimulatedProgress();
+    processing.hidden = true;
+    form.hidden = false;
+    showAudioRecovery();
+  });
+
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
 
@@ -226,10 +240,13 @@ document.addEventListener("DOMContentLoaded", () => {
     progressBar.style.width = "0%";
     progressPercent.textContent = "0%";
 
+    abortController = new AbortController();
+
     try {
       const response = await fetch("/api/generate", {
         method: "POST",
         body: formData,
+        signal: abortController.signal,
       });
 
       if (!response.ok) {
@@ -267,10 +284,19 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     } catch (err) {
       stopSimulatedProgress();
+      // User-initiated cancel — go back silently with recovery bar
+      if (err.name === "AbortError") {
+        processing.hidden = true;
+        form.hidden = false;
+        showAudioRecovery();
+        return;
+      }
       processing.hidden = true;
       form.hidden = false;
       showAudioRecovery();
       alert("エラーが発生しました: " + err.message);
+    } finally {
+      abortController = null;
     }
   });
 
