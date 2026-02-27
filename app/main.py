@@ -144,8 +144,18 @@ async def generate(
             date_stamp = now.strftime("%Y%m%d_%H%M")
 
             if mode == "rucas":
-                # RUCAS mode: single-line plain text for CRM paste
+                # RUCAS mode: single-line plain text for CRM paste (max 210 chars)
                 markdown_result = markdown_result.strip().replace("\n", "").replace("\r", "")
+                if len(markdown_result) > 210:
+                    # Truncate at last sentence boundary within 210 chars
+                    truncated = markdown_result[:210]
+                    # Try to cut at the last sentence-ending punctuation
+                    for sep in ["。", "、", ".", " "]:
+                        pos = truncated.rfind(sep)
+                        if pos > 100:
+                            truncated = truncated[:pos + 1]
+                            break
+                    markdown_result = truncated
                 file_base = f"RUCAS営業情報_{date_stamp}"
                 filename = f"{file_base}.txt"
                 txt_path = DOWNLOAD_DIR / filename
