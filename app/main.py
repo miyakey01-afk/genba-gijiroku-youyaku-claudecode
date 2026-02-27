@@ -144,7 +144,8 @@ async def generate(
             date_stamp = now.strftime("%Y%m%d_%H%M")
 
             if mode == "rucas":
-                # RUCAS mode: plain text, no title extraction or timestamp
+                # RUCAS mode: single-line plain text for CRM paste
+                markdown_result = markdown_result.strip().replace("\n", "").replace("\r", "")
                 file_base = f"RUCAS営業情報_{date_stamp}"
                 filename = f"{file_base}.txt"
                 txt_path = DOWNLOAD_DIR / filename
