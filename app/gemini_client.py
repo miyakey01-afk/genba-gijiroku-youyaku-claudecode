@@ -8,7 +8,10 @@ from google import genai
 from google.genai import types
 
 from app.config import settings
-from app.prompts import SYSTEM_PROMPT, USER_PROMPT_TEMPLATE
+from app.prompts import (
+    SYSTEM_PROMPT, USER_PROMPT_TEMPLATE,
+    RUCAS_SYSTEM_PROMPT, RUCAS_USER_PROMPT_TEMPLATE,
+)
 
 AUDIO_EXTENSIONS = {".mp3", ".wav", ".m4a", ".flac", ".ogg", ".aac", ".wma", ".webm"}
 TEXT_EXTENSIONS = {".txt", ".md", ".text", ".csv"}
@@ -45,6 +48,7 @@ async def generate_minutes(
     text_paste: str,
     file_paths: list[tuple[str, str]],
     status_callback=None,
+    mode: str = "minutes",
 ) -> str:
     """Generate meeting minutes from text and/or audio files.
 
@@ -52,9 +56,10 @@ async def generate_minutes(
         text_paste: Pasted text content.
         file_paths: List of (original_filename, temp_file_path) tuples.
         status_callback: Async callable for progress updates.
+        mode: "minutes" for full meeting minutes, "rucas" for short CRM summary.
 
     Returns:
-        Generated markdown text.
+        Generated markdown text (minutes) or plain text (rucas).
     """
     client = _get_client()
     contents = []
@@ -109,12 +114,21 @@ async def generate_minutes(
             else:
                 await send_status(f"未対応のファイル形式をスキップ: {original_name}")
 
-        # Build user prompt
+        # Build user prompt (select template based on mode)
         all_text = "\n\n".join(text_parts)
         if text_paste:
             all_text = text_paste + "\n\n" + all_text if all_text else text_paste
 
-        user_prompt = USER_PROMPT_TEMPLATE.format(content=all_text if all_text else "（音声ファイルを参照してください）")
+        if mode == "rucas":
+            sys_prompt = RUCAS_SYSTEM_PROMPT
+            user_prompt = RUCAS_USER_PROMPT_TEMPLATE.format(
+                content=all_text if all_text else "（音声ファイルを参照してください）"
+            )
+        else:
+            sys_prompt = SYSTEM_PROMPT
+            user_prompt = USER_PROMPT_TEMPLATE.format(
+                content=all_text if all_text else "（音声ファイルを参照してください）"
+            )
         contents.append(types.Part.from_text(text=user_prompt))
 
         # Call Gemini with retry on transient network errors only
@@ -130,8 +144,8 @@ async def generate_minutes(
                     model=settings.gemini_model,
                     contents=contents,
                     config=types.GenerateContentConfig(
-                        system_instruction=SYSTEM_PROMPT,
-                        temperature=0.7,
+                        system_instruction=sys_prompt,
+                        temperature=0.3 if mode == "rucas" else 0.7,
                     ),
                 )
                 return response.text

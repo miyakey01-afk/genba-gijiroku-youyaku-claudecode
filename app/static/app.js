@@ -4,6 +4,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const dropZone = document.getElementById("dropZone");
   const fileList = document.getElementById("fileList");
   const submitBtn = document.getElementById("submitBtn");
+  const rucasBtn = document.getElementById("rucasBtn");
   const processing = document.getElementById("processing");
   const statusMessage = document.getElementById("statusMessage");
   const resultSection = document.getElementById("resultSection");
@@ -214,11 +215,11 @@ document.addEventListener("DOMContentLoaded", () => {
     showAudioRecovery();
   });
 
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-
+  async function submitGeneration(mode) {
     const textPaste = document.getElementById("text_paste").value;
-    const outputFormat = document.querySelector('input[name="output_format"]:checked').value;
+    const outputFormat = mode === "rucas"
+      ? "text"
+      : document.querySelector('input[name="output_format"]:checked').value;
 
     if (!textPaste.trim() && selectedFiles.length === 0) {
       alert("テキストまたはファイルを入力してください。");
@@ -229,6 +230,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const formData = new FormData();
     formData.append("text_paste", textPaste);
     formData.append("output_format", outputFormat);
+    formData.append("mode", mode);
     selectedFiles.forEach((f) => formData.append("files", f));
 
     // Show processing UI
@@ -236,7 +238,9 @@ document.addEventListener("DOMContentLoaded", () => {
     processing.hidden = false;
     resultSection.hidden = true;
     audioRecovery.hidden = true;
-    statusMessage.textContent = "処理を開始中...";
+    statusMessage.textContent = mode === "rucas"
+      ? "RUCAS営業情報を生成開始中..."
+      : "処理を開始中...";
     progressBar.style.width = "0%";
     progressPercent.textContent = "0%";
 
@@ -298,6 +302,15 @@ document.addEventListener("DOMContentLoaded", () => {
     } finally {
       abortController = null;
     }
+  }
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    submitGeneration("minutes");
+  });
+
+  rucasBtn.addEventListener("click", () => {
+    submitGeneration("rucas");
   });
 
   function handleEvent(type, data) {
