@@ -138,6 +138,38 @@ textarea:focus {
     50% { opacity: 0.2; }
 }
 
+/* Audio Recovery (error fallback) */
+.audio-recovery {
+    background: #fef2f2;
+    border: 1px solid #fca5a5;
+    border-radius: 12px;
+    padding: 16px 24px;
+    margin-bottom: 16px;
+    text-align: center;
+}
+
+.audio-recovery p {
+    color: #991b1b;
+    font-size: 0.9rem;
+    margin-bottom: 12px;
+}
+
+.btn-recovery {
+    padding: 10px 24px;
+    background: #dc2626;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-recovery:hover {
+    background: #b91c1c;
+}
+
 @keyframes pulse-btn {
     0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4); }
     50% { box-shadow: 0 0 0 8px rgba(220, 38, 38, 0); }

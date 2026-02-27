@@ -19,6 +19,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const recordingTime = document.getElementById("recordingTime");
   const recordingIndicator = document.getElementById("recordingIndicator");
 
+  const audioRecovery = document.getElementById("audioRecovery");
+  const recoveryDownloadBtn = document.getElementById("recoveryDownloadBtn");
+
   let selectedFiles = [];
   let rawMarkdown = "";
   let simulatedTimer = null;
@@ -28,6 +31,8 @@ document.addEventListener("DOMContentLoaded", () => {
   let recordedChunks = [];
   let recordingTimer = null;
   let recordingStartTime = null;
+  let lastRecordedBlob = null;
+  let lastRecordedFileName = null;
 
   recordBtn.addEventListener("click", async () => {
     if (mediaRecorder && mediaRecorder.state === "recording") {
@@ -70,7 +75,13 @@ document.addEventListener("DOMContentLoaded", () => {
           + "_"
           + String(now.getHours()).padStart(2, "0")
           + String(now.getMinutes()).padStart(2, "0");
-        const file = new File([blob], `録音_${ts}.webm`, { type: "audio/webm" });
+        const fileName = `録音_${ts}.webm`;
+        const file = new File([blob], fileName, { type: "audio/webm" });
+
+        // Keep blob for error recovery download
+        lastRecordedBlob = blob;
+        lastRecordedFileName = fileName;
+
         selectedFiles.push(file);
         renderFileList();
       };
@@ -210,6 +221,7 @@ document.addEventListener("DOMContentLoaded", () => {
     form.hidden = true;
     processing.hidden = false;
     resultSection.hidden = true;
+    audioRecovery.hidden = true;
     statusMessage.textContent = "処理を開始中...";
     progressBar.style.width = "0%";
     progressPercent.textContent = "0%";
@@ -257,6 +269,7 @@ document.addEventListener("DOMContentLoaded", () => {
       stopSimulatedProgress();
       processing.hidden = true;
       form.hidden = false;
+      showAudioRecovery();
       alert("エラーが発生しました: " + err.message);
     }
   });
@@ -304,10 +317,31 @@ document.addEventListener("DOMContentLoaded", () => {
         stopSimulatedProgress();
         processing.hidden = true;
         form.hidden = false;
+        showAudioRecovery();
         alert("エラー: " + data.message);
         break;
     }
   }
+
+  // --- Audio recovery on error ---
+
+  function showAudioRecovery() {
+    if (lastRecordedBlob) {
+      audioRecovery.hidden = false;
+    }
+  }
+
+  recoveryDownloadBtn.addEventListener("click", () => {
+    if (!lastRecordedBlob) return;
+    const url = URL.createObjectURL(lastRecordedBlob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = lastRecordedFileName || "録音データ.webm";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
 
   // --- Result actions ---
 
@@ -326,10 +360,13 @@ document.addEventListener("DOMContentLoaded", () => {
       mediaRecorder.stop();
     }
     resultSection.hidden = true;
+    audioRecovery.hidden = true;
     form.hidden = false;
     document.getElementById("text_paste").value = "";
     selectedFiles = [];
     renderFileList();
     rawMarkdown = "";
+    lastRecordedBlob = null;
+    lastRecordedFileName = null;
   });
 });
