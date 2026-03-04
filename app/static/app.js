@@ -23,8 +23,15 @@ document.addEventListener("DOMContentLoaded", () => {
   const audioRecovery = document.getElementById("audioRecovery");
   const recoveryDownloadBtn = document.getElementById("recoveryDownloadBtn");
 
+  const proposalSection = document.getElementById("proposalSection");
+  const proposalBtn = document.getElementById("proposalBtn");
+  const proposalMemo = document.getElementById("proposalMemo");
+  const memoCharCount = document.getElementById("memoCharCount");
+  const createProposalBtn = document.getElementById("createProposalBtn");
+
   let selectedFiles = [];
   let rawMarkdown = "";
+  let lastMode = "minutes";
   let simulatedTimer = null;
 
   // --- Audio recording ---
@@ -216,12 +223,15 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   async function submitGeneration(mode) {
+    lastMode = mode;
     const textPaste = document.getElementById("text_paste").value;
-    const outputFormat = mode === "rucas"
+    const outputFormat = (mode === "rucas")
       ? "text"
       : document.querySelector('input[name="output_format"]:checked').value;
 
-    if (!textPaste.trim() && selectedFiles.length === 0) {
+    if (mode === "proposal") {
+      // Proposal mode validation is handled before calling this function
+    } else if (!textPaste.trim() && selectedFiles.length === 0) {
       alert("テキストまたはファイルを入力してください。");
       return;
     }
@@ -233,14 +243,23 @@ document.addEventListener("DOMContentLoaded", () => {
     formData.append("mode", mode);
     selectedFiles.forEach((f) => formData.append("files", f));
 
+    if (mode === "proposal") {
+      formData.append("company", document.getElementById("proposalCompany").value);
+      formData.append("proposal_date", document.getElementById("proposalDate").value);
+      formData.append("area", document.getElementById("proposalArea").value);
+      formData.append("category", document.getElementById("proposalCategory").value);
+      formData.append("sales_memo", proposalMemo.value);
+    }
+
     // Show processing UI
     form.hidden = true;
     processing.hidden = false;
     resultSection.hidden = true;
     audioRecovery.hidden = true;
-    statusMessage.textContent = mode === "rucas"
-      ? "RUCAS営業情報を生成開始中..."
-      : "処理を開始中...";
+    let initialMessage = "処理を開始中...";
+    if (mode === "rucas") initialMessage = "RUCAS営業情報を生成開始中...";
+    else if (mode === "proposal") initialMessage = "提案書の生成を開始します...";
+    statusMessage.textContent = initialMessage;
     progressBar.style.width = "0%";
     progressPercent.textContent = "0%";
 
@@ -313,6 +332,43 @@ document.addEventListener("DOMContentLoaded", () => {
     submitGeneration("rucas");
   });
 
+  // --- Proposal ---
+
+  // Set default proposal date to today
+  const proposalDateInput = document.getElementById("proposalDate");
+  proposalDateInput.value = new Date().toISOString().split("T")[0];
+
+  // Character counter for proposal memo
+  proposalMemo.addEventListener("input", () => {
+    memoCharCount.textContent = proposalMemo.value.length;
+  });
+
+  // "提案書草案を作成" button in result section
+  createProposalBtn.addEventListener("click", () => {
+    resultSection.hidden = true;
+    form.hidden = false;
+    proposalSection.hidden = false;
+    // Auto-fill proposal memo with the minutes result
+    proposalMemo.value = rawMarkdown;
+    memoCharCount.textContent = rawMarkdown.length;
+    proposalSection.scrollIntoView({ behavior: "smooth" });
+  });
+
+  // Submit proposal
+  proposalBtn.addEventListener("click", () => {
+    const company = document.getElementById("proposalCompany").value.trim();
+    const memo = proposalMemo.value.trim();
+    if (!company) {
+      alert("顧客名を入力してください。");
+      return;
+    }
+    if (!memo) {
+      alert("提案したい内容を入力してください。");
+      return;
+    }
+    submitGeneration("proposal");
+  });
+
   function handleEvent(type, data) {
     switch (type) {
       case "status":
@@ -322,10 +378,13 @@ document.addEventListener("DOMContentLoaded", () => {
           progressBar.style.width = data.progress + "%";
           progressPercent.textContent = data.progress + "%";
 
-          // When Gemini API processing starts (30%), simulate progress
-          // up to 80% over 4 minutes so the user sees movement
+          // When Gemini API processing starts, simulate progress
           if (data.progress === 30) {
+            // Minutes/RUCAS: 30→80% over 4 min
             startSimulatedProgress(30, 80, 240000);
+          } else if (data.progress === 55) {
+            // Proposal Step4: 55→80% over 5 min (longer generation)
+            startSimulatedProgress(55, 80, 300000);
           }
         }
         break;
@@ -350,6 +409,9 @@ document.addEventListener("DOMContentLoaded", () => {
         } else {
           downloadBtn.hidden = true;
         }
+
+        // Show "提案書草案を作成" button only after minutes generation
+        createProposalBtn.hidden = (lastMode !== "minutes");
         break;
 
       case "error":
@@ -407,5 +469,13 @@ document.addEventListener("DOMContentLoaded", () => {
     rawMarkdown = "";
     lastRecordedBlob = null;
     lastRecordedFileName = null;
+    // Reset proposal fields
+    proposalSection.hidden = true;
+    document.getElementById("proposalCompany").value = "";
+    document.getElementById("proposalArea").value = "";
+    document.getElementById("proposalCategory").value = "";
+    proposalMemo.value = "";
+    memoCharCount.textContent = "0";
+    proposalDateInput.value = new Date().toISOString().split("T")[0];
   });
 });

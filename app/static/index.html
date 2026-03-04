@@ -73,6 +73,44 @@
                 <button type="button" id="rucasBtn" class="btn-rucas">
                     RUCAS営業情報に要約
                 </button>
+
+                <!-- Proposal Section -->
+                <div id="proposalSection" class="proposal-section" hidden>
+                    <h3 class="proposal-heading">提案書草案作成</h3>
+
+                    <div class="proposal-row">
+                        <div class="form-group proposal-field">
+                            <label for="proposalCompany">顧客名 <span class="required">*</span></label>
+                            <input type="text" id="proposalCompany" maxlength="48" placeholder="例: 株式会社ABC" required>
+                        </div>
+                        <div class="form-group proposal-field">
+                            <label for="proposalDate">ご提案日</label>
+                            <input type="date" id="proposalDate">
+                        </div>
+                    </div>
+
+                    <div class="proposal-row">
+                        <div class="form-group proposal-field">
+                            <label for="proposalArea">地域（市区町村）</label>
+                            <input type="text" id="proposalArea" maxlength="48" placeholder="例: 東京都千代田区">
+                        </div>
+                        <div class="form-group proposal-field">
+                            <label for="proposalCategory">顧客業種</label>
+                            <input type="text" id="proposalCategory" maxlength="48" placeholder="例: 製造業">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="proposalMemo">提案したい内容 <span class="required">*</span></label>
+                        <textarea id="proposalMemo" rows="6"
+                            placeholder="提案したい内容を記入してください（議事録生成後は自動セットされます）"></textarea>
+                        <div class="char-counter"><span id="memoCharCount">0</span> 文字</div>
+                    </div>
+
+                    <button type="button" id="proposalBtn" class="btn-proposal">
+                        提案書草案を作成
+                    </button>
+                </div>
             </form>
 
             <!-- Processing Status -->
@@ -93,6 +131,7 @@
                     <div class="result-actions">
                         <button id="copyBtn" class="btn-secondary" title="コピー">コピー</button>
                         <button id="downloadBtn" class="btn-secondary" hidden>ダウンロード</button>
+                        <button id="createProposalBtn" class="btn-proposal-sm" hidden>提案書草案を作成</button>
                         <button id="newBtn" class="btn-new-summary">新しい要約をする</button>
                     </div>
                 </div>

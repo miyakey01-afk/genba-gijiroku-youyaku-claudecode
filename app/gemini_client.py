@@ -11,6 +11,8 @@ from app.config import settings
 from app.prompts import (
     SYSTEM_PROMPT, USER_PROMPT_TEMPLATE,
     RUCAS_SYSTEM_PROMPT, RUCAS_USER_PROMPT_TEMPLATE,
+    PROPOSAL_EXTRACT_PROMPT, PROPOSAL_SEARCH_PROMPT,
+    PROPOSAL_SYSTEM_PROMPT, PROPOSAL_USER_PROMPT_TEMPLATE,
 )
 
 AUDIO_EXTENSIONS = {".mp3", ".wav", ".m4a", ".flac", ".ogg", ".aac", ".wma", ".webm"}
@@ -163,3 +165,112 @@ async def generate_minutes(
                 client.files.delete(name=uf.name)
             except Exception:
                 pass
+
+
+async def generate_proposal(
+    sales_memo: str,
+    company: str,
+    proposal_date: str,
+    area: str,
+    category: str,
+    status_callback=None,
+) -> str:
+    """Generate a proposal draft through a 4-step pipeline.
+
+    Step 1: Extract proposal essence from sales_memo (if long)
+    Step 2: Web search for customer company info (Google Search grounding)
+    Step 3: Load product knowledge files
+    Step 4: Generate proposal draft
+    """
+    from app.knowledge_loader import load_all_knowledge
+
+    client = _get_client()
+
+    async def send_status(msg: str):
+        if status_callback:
+            await status_callback(msg)
+
+    # --- Step 1: Extract proposal essence if text is long ---
+    await send_status("議事録から提案エッセンスを抽出中...")
+
+    if len(sales_memo) > 2000:
+        extract_prompt = PROPOSAL_EXTRACT_PROMPT.format(content=sales_memo)
+        response = client.models.generate_content(
+            model=settings.gemini_model,
+            contents=[types.Part.from_text(text=extract_prompt)],
+            config=types.GenerateContentConfig(temperature=0.3),
+        )
+        extracted_memo = response.text
+    else:
+        extracted_memo = sales_memo
+
+    # --- Step 2: Web search for customer company info ---
+    await send_status(f"顧客企業「{company}」をWeb検索中...")
+
+    search_prompt = PROPOSAL_SEARCH_PROMPT.format(
+        company=company, area=area,
+    )
+    try:
+        search_response = client.models.generate_content(
+            model=settings.gemini_model,
+            contents=[types.Part.from_text(text=search_prompt)],
+            config=types.GenerateContentConfig(
+                tools=[types.Tool(google_search=types.GoogleSearch())],
+                temperature=0.3,
+            ),
+        )
+        web_search_result = search_response.text
+    except Exception as e:
+        await send_status(f"Web検索でエラーが発生しました。検索結果なしで続行します。")
+        web_search_result = f"（Web検索に失敗しました: {e}）"
+
+    # --- Step 3: Load product knowledge ---
+    await send_status("自社商材ナレッジを読み込み中...")
+
+    knowledge_text = load_all_knowledge()
+    if not knowledge_text:
+        knowledge_text = "（ナレッジファイルが見つかりませんでした）"
+
+    # --- Step 4: Generate proposal draft ---
+    await send_status("提案書草案を生成中...")
+
+    sys_prompt = PROPOSAL_SYSTEM_PROMPT.format(
+        web_search_result=web_search_result,
+        knowledge=knowledge_text,
+        company=company,
+        area=area,
+        category=category,
+        sales_memo=extracted_memo,
+        proposal_date=proposal_date,
+    )
+
+    user_prompt = PROPOSAL_USER_PROMPT_TEMPLATE.format(
+        web_search_result=web_search_result,
+        company=company,
+        area=area,
+        category=category,
+        proposal_date=proposal_date,
+        sales_memo=extracted_memo,
+    )
+
+    max_retries = 2
+    for attempt in range(1, max_retries + 1):
+        try:
+            if attempt > 1:
+                await send_status(f"提案書草案を生成中...（リトライ {attempt}/{max_retries}）")
+
+            response = client.models.generate_content(
+                model=settings.gemini_model,
+                contents=[types.Part.from_text(text=user_prompt)],
+                config=types.GenerateContentConfig(
+                    system_instruction=sys_prompt,
+                    temperature=0.7,
+                ),
+            )
+            return response.text
+
+        except (ConnectionError, TimeoutError, OSError):
+            if attempt == max_retries:
+                raise
+            await send_status(f"接続エラーが発生、{attempt * 5}秒後にリトライします...")
+            time.sleep(attempt * 5)
