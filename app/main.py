@@ -197,7 +197,7 @@ async def generate(
                 # Run generation in a thread, sending SSE keepalive every 15s
                 with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
                     future = executor.submit(
-                        _generate_sync, text_paste, temp_files, status_messages, mode
+                        _generate_sync, text_paste, temp_files, status_messages, mode, company
                     )
                     elapsed = 0
                     while not future.done():
@@ -307,6 +307,7 @@ def _generate_sync(
     file_paths: list[tuple[str, str]],
     status_messages: list[str],
     mode: str = "minutes",
+    company: str = "",
 ) -> str:
     """Synchronous wrapper for generate_minutes (runs in thread)."""
     import asyncio
@@ -315,7 +316,7 @@ def _generate_sync(
         status_messages.append(msg)
 
     return asyncio.run(
-        generate_minutes(text_paste, file_paths, status_callback=status_cb, mode=mode)
+        generate_minutes(text_paste, file_paths, status_callback=status_cb, mode=mode, company=company)
     )
 
 
