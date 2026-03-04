@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     gemini_model: str = "gemini-3-flash-preview"
     max_file_size_mb: int = 500
     temp_dir: str = "/tmp/gijiroku"
+    knowledge_dir: str = "knowledge"
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 

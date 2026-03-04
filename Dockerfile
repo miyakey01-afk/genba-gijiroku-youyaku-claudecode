@@ -6,8 +6,9 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app/ ./app/
+COPY knowledge/ ./knowledge/
 
-RUN mkdir -p /tmp/gijiroku/downloads
+RUN mkdir -p /tmp/gijiroku/downloads /app/knowledge
 
 ENV PORT=8080
 
