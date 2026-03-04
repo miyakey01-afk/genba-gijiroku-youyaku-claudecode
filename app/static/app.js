@@ -347,7 +347,6 @@ document.addEventListener("DOMContentLoaded", () => {
   createProposalBtn.addEventListener("click", () => {
     resultSection.hidden = true;
     form.hidden = false;
-    proposalSection.hidden = false;
     // Auto-fill proposal memo with the minutes result
     proposalMemo.value = rawMarkdown;
     memoCharCount.textContent = rawMarkdown.length;
@@ -357,14 +356,22 @@ document.addEventListener("DOMContentLoaded", () => {
   // Submit proposal
   proposalBtn.addEventListener("click", () => {
     const company = document.getElementById("proposalCompany").value.trim();
+    const textPaste = document.getElementById("text_paste").value.trim();
     const memo = proposalMemo.value.trim();
+
+    // Check for any input data (audio files, text, or proposal memo)
+    if (!textPaste && selectedFiles.length === 0 && !memo) {
+      alert("音声データがありません。\nテキスト入力、ファイルアップロード、または提案したい内容のいずれかを入力してください。");
+      return;
+    }
     if (!company) {
       alert("顧客名を入力してください。");
       return;
     }
-    if (!memo) {
-      alert("提案したい内容を入力してください。");
-      return;
+    // If no proposal memo but text_paste exists, auto-fill
+    if (!memo && textPaste) {
+      proposalMemo.value = textPaste;
+      memoCharCount.textContent = textPaste.length;
     }
     submitGeneration("proposal");
   });
@@ -470,7 +477,6 @@ document.addEventListener("DOMContentLoaded", () => {
     lastRecordedBlob = null;
     lastRecordedFileName = null;
     // Reset proposal fields
-    proposalSection.hidden = true;
     document.getElementById("proposalCompany").value = "";
     document.getElementById("proposalArea").value = "";
     document.getElementById("proposalCategory").value = "";
