@@ -248,7 +248,9 @@ document.addEventListener("DOMContentLoaded", () => {
       formData.append("proposal_date", document.getElementById("proposalDate").value);
       formData.append("area", document.getElementById("proposalArea").value);
       formData.append("category", document.getElementById("proposalCategory").value);
-      formData.append("sales_memo", proposalMemo.value);
+      // Use proposalMemo if filled, otherwise fall back to text_paste
+      const memo = proposalMemo.value.trim() || textPaste.trim();
+      formData.append("sales_memo", memo);
     }
 
     // Show processing UI
