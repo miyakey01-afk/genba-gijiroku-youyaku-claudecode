@@ -243,8 +243,13 @@ document.addEventListener("DOMContentLoaded", () => {
     formData.append("mode", mode);
     selectedFiles.forEach((f) => formData.append("files", f));
 
+    // Always send company name (used for minutes title and proposal)
+    const companyValue = document.getElementById("proposalCompany").value.trim();
+    if (companyValue) {
+      formData.append("company", companyValue);
+    }
+
     if (mode === "proposal") {
-      formData.append("company", document.getElementById("proposalCompany").value);
       formData.append("proposal_date", document.getElementById("proposalDate").value);
       formData.append("area", document.getElementById("proposalArea").value);
       formData.append("category", document.getElementById("proposalCategory").value);

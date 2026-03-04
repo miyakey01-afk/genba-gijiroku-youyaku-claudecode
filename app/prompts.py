@@ -47,6 +47,12 @@ USER_PROMPT_TEMPLATE = """\
 ===== 商談メモここまで =====\
 """
 
+COMPANY_NAME_INSTRUCTION = """
+
+【顧客企業名】
+以下の企業名が正式な顧客名です。議事録のタイトルにこの企業名を必ず使用してください: {company}\
+"""
+
 # ----- RUCAS 営業情報要約用プロンプト -----
 
 RUCAS_SYSTEM_PROMPT = """\

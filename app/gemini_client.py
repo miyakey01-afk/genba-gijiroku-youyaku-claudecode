@@ -9,7 +9,7 @@ from google.genai import types
 
 from app.config import settings
 from app.prompts import (
-    SYSTEM_PROMPT, USER_PROMPT_TEMPLATE,
+    SYSTEM_PROMPT, USER_PROMPT_TEMPLATE, COMPANY_NAME_INSTRUCTION,
     RUCAS_SYSTEM_PROMPT, RUCAS_USER_PROMPT_TEMPLATE,
     PROPOSAL_EXTRACT_PROMPT, PROPOSAL_SEARCH_PROMPT,
     PROPOSAL_SYSTEM_PROMPT, PROPOSAL_USER_PROMPT_TEMPLATE,
@@ -51,6 +51,7 @@ async def generate_minutes(
     file_paths: list[tuple[str, str]],
     status_callback=None,
     mode: str = "minutes",
+    company: str = "",
 ) -> str:
     """Generate meeting minutes from text and/or audio files.
 
@@ -128,9 +129,11 @@ async def generate_minutes(
             )
         else:
             sys_prompt = SYSTEM_PROMPT
-            user_prompt = USER_PROMPT_TEMPLATE.format(
-                content=all_text if all_text else "（音声ファイルを参照してください）"
-            )
+            content_text = all_text if all_text else "（音声ファイルを参照してください）"
+            user_prompt = USER_PROMPT_TEMPLATE.format(content=content_text)
+            # Append company name instruction if provided
+            if company.strip():
+                user_prompt += COMPANY_NAME_INSTRUCTION.format(company=company.strip())
         contents.append(types.Part.from_text(text=user_prompt))
 
         # Call Gemini with retry on transient network errors only
