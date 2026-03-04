@@ -96,8 +96,14 @@ async def generate(
 
             if mode == "proposal":
                 # --- Proposal mode ---
-                if not company.strip() or not sales_memo.strip():
-                    yield _sse_event("error", {"message": "顧客名と提案したい内容は必須です。"})
+                # Use text_paste as fallback if sales_memo is empty
+                effective_memo = sales_memo.strip() or text_paste.strip()
+
+                if not company.strip():
+                    yield _sse_event("error", {"message": "顧客名を入力してください。"})
+                    return
+                if not effective_memo:
+                    yield _sse_event("error", {"message": "提案したい内容またはテキスト入力を入力してください。"})
                     return
 
                 yield _sse_event("status", {"message": "提案書の生成を開始します...", "progress": 5})
@@ -107,7 +113,7 @@ async def generate(
                 with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
                     future = executor.submit(
                         _generate_proposal_sync,
-                        sales_memo, company, proposal_date, area, category,
+                        effective_memo, company, proposal_date, area, category,
                         status_messages,
                     )
                     elapsed = 0
